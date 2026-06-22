@@ -546,13 +546,8 @@ function renderCellContent(colId, p, shippingOpts) {
       return html;
     }
     case 'listingPrice': {
-      const cartPrice = p.currentBuyBoxPrice ?? p.currentNewPrice;
-      const bbt = p.buyBoxType;
-      const badgeCls = bbt === 'amazon' ? 'cart-amazon' : bbt === 'fba' ? 'cart-fba' : bbt === 'fbm' ? 'cart-fbm' : '';
-      const badgeLabel = bbt === 'amazon' ? 'Amazon' : bbt === 'fba' ? 'FBA' : bbt === 'fbm' ? '自己発送' : '';
       return `<div class="listing-price-cell">
         <input class="inline-input inline-input-num" type="number" value="${p.listingPrice??''}" placeholder="¥" data-asin="${p.asin}" data-field="listingPrice" onchange="saveInline(this)">
-        ${cartPrice ? `<div class="cart-price-hint ${badgeCls}"><span class="cart-badge">${badgeLabel}</span> ¥${cartPrice.toLocaleString()}</div>` : ''}
       </div>`;
     }
     case 'lowerPrice': return `<input class="inline-input inline-input-num" type="number" value="${p.lowerPrice??''}" placeholder="¥" data-asin="${p.asin}" data-field="lowerPrice" onchange="saveInline(this)">`;
@@ -583,7 +578,7 @@ function renderCellContent(colId, p, shippingOpts) {
     case 'category': return `<span class="cell-category">${formatCategory(p.category)}</span>`;
     case 'amazon': return `<span style="text-align:center;display:block">${formatAmazonPresence(p.amazonPresence90)}</span>`;
     case 'avgPrice': return `<span class="cell-price">${fmtPrice(p.avg90BuyBoxPrice)}</span>`;
-    case 'sellers': return `<span class="cell-number">${fmtNum(p.avg90NewSellerCount)}</span>`;
+    case 'sellers': return `<span class="cell-number">${p.avg90NewSellerCount != null ? p.avg90NewSellerCount + '人' : '<span class="cell-null">-</span>'}</span>`;
     case 'fba': return `<span class="cell-number">${fmtNum(p.avg90FbaSellerCount)}</span>`;
     case 'fbm': return `<span class="cell-number">${fmtNum(p.avg90FbmSellerCount)}</span>`;
     case 'sales': return `<span class="cell-number">${formatSales(p)}</span>`;
@@ -963,7 +958,7 @@ function fmtPrice(v){return v!=null?'¥'+Number(v).toLocaleString():'<span class
 function fmtNum(v){return v!=null?(Number.isInteger(v)?v.toLocaleString():v.toFixed(1)):'<span class="cell-null">--</span>';}
 function fmtRank(v){return v!=null?'#'+Number(v).toLocaleString():'<span class="cell-null">--</span>';}
 function fmtDate(s){if(!s)return '-';const d=new Date(s);return `${d.getMonth()+1}/${d.getDate()}`;}
-function formatSales(p){if(p.monthlySold)return `${p.monthlySold}+/月`;if(p.salesRankDrops90!=null)return `${Math.round(p.salesRankDrops90/3)}/月`;return '<span class="cell-null">-</span>';}
+function formatSales(p){if(p.monthlySold)return `${p.monthlySold}+個/月`;if(p.salesRankDrops90!=null)return `${Math.round(p.salesRankDrops90/3)}個/月`;return '<span class="cell-null">-</span>';}
 function formatBrand(b){if(!b)return '-';const m=b.match(/^(.+?)\s*(\(.+\))$/);return m?`<span class="brand-ja">${esc(m[1])}</span><br><span class="brand-en">${esc(m[2])}</span>`:esc(b);}
 function formatCategory(c){if(!c)return '-';return c.split(' > ').map((p,i)=>`<span class="cat-level${i===0?' cat-level-0':''}">${'\u2003'.repeat(i)}${esc(p)}</span>`).join('');}
 function formatAmazonPresence(pct){if(pct==null)return '<span class="cell-null">-</span>';if(pct===0)return '<span class="badge-amazon no">0%</span>';return `<span class="badge-amazon ${pct>=50?'yes':'low'}">${pct}%</span>`;}
@@ -1024,8 +1019,8 @@ function openDetail(asin) {
     <div class="detail-section-title">販売データ</div>
     <div class="detail-grid">
       <div class="detail-item"><div class="detail-item-label">販売数</div><div class="detail-item-value">${formatSales(p)}</div></div>
-      <div class="detail-item"><div class="detail-item-label">出品者数</div><div class="detail-item-value">${fmtNum(p.avg90NewSellerCount)}</div></div>
-      <div class="detail-item"><div class="detail-item-label">FBA / 自己発送</div><div class="detail-item-value">${fmtNum(p.avg90FbaSellerCount)} / ${fmtNum(p.avg90FbmSellerCount)}</div></div>
+      <div class="detail-item"><div class="detail-item-label">出品者数</div><div class="detail-item-value">${p.avg90NewSellerCount != null ? p.avg90NewSellerCount + '人' : '-'}</div></div>
+      <div class="detail-item"><div class="detail-item-label">FBA / 自己発送</div><div class="detail-item-value">${p.avg90FbaSellerCount != null ? p.avg90FbaSellerCount + '人' : '-'} / ${p.avg90FbmSellerCount != null ? p.avg90FbmSellerCount + '人' : '-'}</div></div>
       <div class="detail-item"><div class="detail-item-label">Amazon出品率</div><div class="detail-item-value">${p.amazonPresence90 != null ? p.amazonPresence90 + '%' : '-'}</div></div>
       <div class="detail-item"><div class="detail-item-label">平均ランク</div><div class="detail-item-value">${fmtRank(p.avg90SalesRank)}</div></div>
       <div class="detail-item"><div class="detail-item-label">評価</div><div class="detail-item-value">${p.rating != null ? p.rating.toFixed(1) + ' / 5.0' : '-'}</div></div>

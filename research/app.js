@@ -1163,9 +1163,9 @@ function renderTable(products) {
       // ランキング
       '<td class="col-rank"><span class="cell-rank">' + (p.avg90SalesRank ? formatNum(p.avg90SalesRank) : '<span class="cell-null">--</span>') + '</span></td>' +
       // 販売数/月
-      '<td class="col-sales"><span class="cell-number">' + (p.monthlySold !== null ? formatNum(p.monthlySold) : '<span class="cell-null">--</span>') + '</span></td>' +
+      '<td class="col-sales"><span class="cell-number">' + (p.monthlySold !== null ? formatNum(p.monthlySold) + '個' : '<span class="cell-null">--</span>') + '</span></td>' +
       // 出品者数
-      '<td class="col-sellers"><span class="cell-number">' + (p.avg90NewSellerCount !== null ? formatNum(p.avg90NewSellerCount) : '<span class="cell-null">--</span>') + '</span></td>' +
+      '<td class="col-sellers"><span class="cell-number">' + (p.avg90NewSellerCount !== null ? formatNum(p.avg90NewSellerCount) + '人' : '<span class="cell-null">--</span>') + '</span></td>' +
       // カテゴリ
       '<td class="col-category"><span class="cell-category" title="' + escapeHtml(p.category) + '">' + escapeHtml(truncateCategory(p.category)) + '</span></td>' +
       // 評価
