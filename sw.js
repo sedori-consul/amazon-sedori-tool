@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sedori-tool-v1';
+const CACHE_NAME = 'sedori-lab-tools-v1';
 const ASSETS = [
   './',
   './index.html',

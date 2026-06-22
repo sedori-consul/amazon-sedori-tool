@@ -1,7 +1,7 @@
 {
-  "name": "Amazon せどり管理ツール",
-  "short_name": "せどり管理",
-  "description": "Amazon せどりの利益管理・セラーリサーチ統合ツール",
+  "name": "差別化せどりラボ Tools",
+  "short_name": "せどりラボ Tools",
+  "description": "差別化せどりラボ コンサル限定 利益管理・セラーリサーチツール",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",

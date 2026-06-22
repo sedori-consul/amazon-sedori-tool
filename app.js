@@ -280,7 +280,7 @@ function showOnboarding() {
         <h2 class="modal-title">はじめに</h2>
       </div>
       <div class="modal-body" style="padding:24px;">
-        <h3 style="margin:0 0 16px;font-size:16px;">Amazon せどり管理ツールへようこそ</h3>
+        <h3 style="margin:0 0 16px;font-size:16px;">差別化せどりラボ Tools へようこそ</h3>
         <p style="margin:0 0 12px;line-height:1.7;font-size:14px;">
           このツールを使うには <strong>Keepa APIキー</strong> が必要です。
         </p>
