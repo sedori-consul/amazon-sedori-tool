@@ -1529,8 +1529,7 @@ function showOnboarding() {
         <h2 class="modal-title">はじめに</h2>
       </div>
       <div class="modal-body" style="padding:24px;">
-        <h3 style="margin:0 0 8px;font-size:16px;">差別化せどりラボ Tools へようこそ</h3>
-        <p style="margin:0 0 16px;font-size:12px;color:#666;">運営: にゃすけ（元プログラマー / Amazon物販 月利100万円達成）</p>
+        <h3 style="margin:0 0 16px;font-size:16px;">差別化せどりラボ Tools へようこそ</h3>
         <p style="margin:0 0 12px;line-height:1.7;font-size:14px;">
           このツールを使うには <strong>Keepa APIキー</strong> が必要です。
         </p>
