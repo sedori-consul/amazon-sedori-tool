@@ -1774,3 +1774,36 @@ body {
 }
 .btn-toolbar:hover { background: var(--surface-variant, #f0f0f0); color: var(--on-surface, #333); }
 .btn-toolbar .material-symbols-outlined { font-size: 22px; }
+
+/* === フッター === */
+.app-footer {
+  background: var(--surface, #fff);
+  border-top: 1px solid var(--outline-variant, #e0e0e0);
+  padding: 16px 24px;
+  text-align: center;
+}
+.footer-profile { max-width: 600px; margin: 0 auto; }
+.footer-brand {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--on-surface, #1a1a1a);
+  margin-bottom: 6px;
+}
+.footer-info {
+  font-size: 12px;
+  color: var(--on-surface-variant, #666);
+  margin-bottom: 6px;
+}
+.footer-sep { margin: 0 8px; opacity: 0.4; }
+.footer-links { margin-top: 4px; }
+.footer-link {
+  font-size: 12px;
+  color: var(--primary, #1a73e8);
+  text-decoration: none;
+}
+.footer-link:hover { text-decoration: underline; }
+@media (max-width: 768px) {
+  .app-footer { padding: 12px 16px; }
+  .footer-info { display: flex; flex-direction: column; gap: 2px; }
+  .footer-sep { display: none; }
+}
