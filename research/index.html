@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon せどり管理ツール</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=1">
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#1a73e8">
+  <link rel="icon" href="../icon-192.svg">
+  <link rel="apple-touch-icon" href="../icon-192.svg">
+</head>
+<body>
+  <!-- ツール切り替え -->
+  <div class="tool-switcher-bar">
+    <a class="tool-tab" href="../">利益管理</a>
+    <a class="tool-tab active" href="#">リサーチ</a>
+  </div>
+
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar-mode-tabs">
+      <button class="sidebar-mode-tab active" onclick="switchMode('seller', this)">セラー</button>
+      <button class="sidebar-mode-tab" onclick="switchMode('monitor', this)">監視</button>
+    </div>
+
+    <!-- セラー検索モード -->
+    <div class="sidebar-panel" id="sellerPanel">
+      <div class="sidebar-add">
+        <input type="text" id="sellerIdInput" placeholder="セラーID または URL" spellcheck="false" autocomplete="off">
+        <button class="btn-add-seller" onclick="addSeller()">
+          <span class="material-symbols-outlined">add</span> 追加
+        </button>
+      </div>
+      <div class="sidebar-list" id="sellerList"></div>
+    </div>
+
+    <!-- 監視モード -->
+    <div class="sidebar-panel" id="monitorPanel" style="display:none">
+      <div class="sidebar-add">
+        <input type="text" id="monitorUrlInput" placeholder="Keepa Product Finder URLを貼り付け" spellcheck="false" autocomplete="off">
+        <button class="btn-add-seller" onclick="addMonitor()">
+          <span class="material-symbols-outlined">add</span> 追加
+        </button>
+      </div>
+      <div class="sidebar-list" id="monitorList"></div>
+    </div>
+
+    <!-- 条件検索モード -->
+    <div class="sidebar-panel" id="criteriaPanel" style="display:none">
+      <div class="criteria-form">
+        <div class="criteria-field">
+          <label>カテゴリ</label>
+          <select id="criteriaCategory">
+            <option value="">全カテゴリ</option>
+            <option value="2127212051">家電・カメラ</option>
+            <option value="14304371">おもちゃ</option>
+            <option value="3445393051">ドラッグストア</option>
+            <option value="57239051">食品・飲料</option>
+            <option value="2250738051">ビューティー</option>
+            <option value="14315361">スポーツ</option>
+            <option value="2016926051">DIY・工具</option>
+            <option value="2127209051">パソコン</option>
+            <option value="161669011">本</option>
+            <option value="2123629051">ペット用品</option>
+            <option value="352484011">ゲーム</option>
+            <option value="2127213051">文房具</option>
+            <option value="2188554051">ファッション</option>
+            <option value="2017304051">ベビー・マタニティ</option>
+            <option value="3210991">DVD</option>
+            <option value="2351649051">カー用品</option>
+          </select>
+        </div>
+        <div class="criteria-row">
+          <div class="criteria-field">
+            <label>価格 (最小)</label>
+            <input type="number" id="criteriaPriceMin" placeholder="¥">
+          </div>
+          <div class="criteria-field">
+            <label>価格 (最大)</label>
+            <input type="number" id="criteriaPriceMax" placeholder="¥">
+          </div>
+        </div>
+        <div class="criteria-row">
+          <div class="criteria-field">
+            <label>販売数/月 (最小)</label>
+            <input type="number" id="criteriaSalesMin" placeholder="0">
+          </div>
+          <div class="criteria-field">
+            <label>販売数/月 (最大)</label>
+            <input type="number" id="criteriaSalesMax" placeholder="">
+          </div>
+        </div>
+        <div class="criteria-row">
+          <div class="criteria-field">
+            <label>出品者数 (最小)</label>
+            <input type="number" id="criteriaSellersMin" placeholder="0">
+          </div>
+          <div class="criteria-field">
+            <label>出品者数 (最大)</label>
+            <input type="number" id="criteriaSellersMax" placeholder="">
+          </div>
+        </div>
+        <div class="criteria-row">
+          <div class="criteria-field">
+            <label>ランキング (最大)</label>
+            <input type="number" id="criteriaRankMax" placeholder="例: 50000">
+          </div>
+          <div class="criteria-field">
+            <label>レビュー数 (最小)</label>
+            <input type="number" id="criteriaReviewsMin" placeholder="0">
+          </div>
+        </div>
+        <div class="criteria-field">
+          <label>ソート</label>
+          <select id="criteriaSort">
+            <option value="current_SALES">販売数順</option>
+            <option value="current_COUNT_NEW">出品者数順</option>
+            <option value="avg_SALES_RANK">ランキング順</option>
+            <option value="current_NEW">価格順</option>
+          </select>
+        </div>
+        <div class="criteria-buttons">
+          <button class="btn-criteria-search" onclick="searchByCriteria()">
+            <span class="material-symbols-outlined">search</span> 検索
+          </button>
+          <button class="btn-criteria-save" onclick="saveCurrentCriteria()">
+            <span class="material-symbols-outlined">bookmark_add</span> 条件を保存
+          </button>
+        </div>
+        <div class="preset-section">
+          <div class="preset-header">保存済みの条件</div>
+          <div class="preset-list" id="presetList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-sidebar-footer" onclick="openSettings()">
+        <span class="material-symbols-outlined">settings</span> 設定
+      </button>
+    </div>
+  </aside>
+
+  <!-- メインエリア -->
+  <div class="main-content">
+    <!-- ヘッダーバー -->
+    <header class="main-header" id="mainHeader" style="display:none;">
+      <div class="main-header-left">
+        <h1 class="seller-title" id="sellerTitle">セラー名</h1>
+        <span class="seller-product-count" id="sellerProductCount"></span>
+      </div>
+      <div class="main-header-right">
+        <div class="header-search-group">
+          <span class="material-symbols-outlined" style="font-size:18px;color:var(--on-surface-variant);">search</span>
+          <input type="text" class="header-search-input" id="searchInput" placeholder="商品名・ASINで検索">
+        </div>
+        <button class="btn-fetch" id="fetchBtn" onclick="fetchSellerProducts()">
+          <span class="material-symbols-outlined">sync</span> 全商品取得
+        </button>
+        <button class="btn-fetch btn-fetch-secondary" onclick="refreshSellerProducts()">
+          <span class="material-symbols-outlined">refresh</span> 更新
+        </button>
+        <button class="btn-fetch btn-fetch-secondary" onclick="openCsvImport()">
+          <span class="material-symbols-outlined">upload_file</span> CSV取込
+        </button>
+        <input type="file" id="csvFileInput" accept=".csv,.txt" style="display:none" onchange="handleCsvFile(this)">
+      </div>
+    </header>
+
+    <!-- 空状態 -->
+    <div class="empty-state" id="emptyState">
+      <span class="material-symbols-outlined empty-icon">search</span>
+      <h3>リサーチを始めましょう</h3>
+      <p>左のサイドバーからセラー検索または条件検索でリサーチできます</p>
+    </div>
+
+    <!-- テーブル -->
+    <section class="table-card" id="tableCard" style="display:none;">
+      <div class="table-container" id="tableContainer">
+        <table class="product-table" id="productTable">
+          <thead id="productTableHead"></thead>
+          <tbody id="productTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- 商品詳細モーダル -->
+  <div class="modal-overlay" id="detailOverlay" onclick="closeDetailModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title" id="detailTitle">商品詳細</h2>
+        <button class="btn-icon" onclick="closeDetailModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- 設定モーダル -->
+  <div class="modal-overlay" id="settingsOverlay" onclick="closeSettings(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <span class="material-symbols-outlined" style="font-size:22px;vertical-align:middle;margin-right:8px;">settings</span>設定
+        </h2>
+        <button class="btn-icon" onclick="closeSettings()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body" id="settingsBody"></div>
+    </div>
+  </div>
+
+  <!-- セラー削除確認モーダル -->
+  <div class="modal-overlay" id="confirmOverlay" onclick="closeConfirm(event)">
+    <div class="modal modal-small" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title" id="confirmTitle">確認</h2>
+        <button class="btn-icon" onclick="closeConfirm()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body" id="confirmBody"></div>
+    </div>
+  </div>
+
+  <!-- トースト -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ローディング -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <p class="loading-text" id="loadingText">データを取得中...</p>
+  </div>
+
+  <script>
+    // PWA Service Worker登録
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('../sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              if (confirm('ツールが更新されました。今すぐ反映しますか？')) {
+                location.reload();
+              }
+            }
+          });
+        });
+      });
+    }
+  </script>
+  <script src="app.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon せどり管理ツール</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=1">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a73e8">
+  <link rel="icon" href="icon-192.svg">
+  <link rel="apple-touch-icon" href="icon-192.svg">
+</head>
+<body>
+  <header class="app-bar">
+    <div class="app-bar-content">
+      <div class="app-bar-left">
+        <div class="tool-switcher">
+          <a class="tool-tab active" href="#">利益管理</a>
+          <a class="tool-tab" href="./research/">リサーチ</a>
+        </div>
+      </div>
+      <div class="app-bar-center">
+        <div class="header-asin-group">
+          <input type="text" id="asinInput" class="header-asin-input" placeholder="ASIN" maxlength="10" autocomplete="off" spellcheck="false">
+          <button id="fetchBtn" class="btn-fetch" onclick="handleFetch()">
+            <span class="material-symbols-outlined">sync</span>取得
+          </button>
+        </div>
+        <p class="input-hint" id="inputHint"></p>
+      </div>
+      <div class="app-bar-right">
+        <button class="btn-update-all" onclick="triggerUpdateAll()" title="全商品を今すぐ更新">
+          <span class="material-symbols-outlined">refresh</span>
+          <span id="updateLabel">全商品更新</span>
+        </button>
+        <span class="update-status" id="updateStatus"></span>
+        <span class="auto-save-indicator" id="autoSaveIndicator"></span>
+        <span class="status-badge" id="apiStatus">
+          <span class="status-dot"></span>
+          <span class="status-text">確認中...</span>
+        </span>
+        <button class="btn-icon btn-toolbar" onclick="quickBackup()" title="バックアップ">
+          <span class="material-symbols-outlined">download</span>
+        </button>
+        <button class="btn-icon btn-toolbar" onclick="document.getElementById('loadFile').click()" title="読込">
+          <span class="material-symbols-outlined">folder_open</span>
+        </button>
+        <input type="file" id="loadFile" accept=".json" style="display:none" onchange="importAllData(this)">
+        <button class="btn-icon btn-toolbar" onclick="openSettings()" title="設定">
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section class="table-card">
+      <!-- 一括操作バー -->
+      <div class="bulk-bar" id="bulkBar" style="display:none;">
+        <span class="bulk-count"><span id="selectedCount">0</span>件選択中</span>
+        <button class="btn-bulk" onclick="bulkRefresh()">
+          <span class="material-symbols-outlined">sync</span>選択を更新
+        </button>
+        <button class="btn-bulk" onclick="bulkOpenAmazon()">
+          <span class="material-symbols-outlined">open_in_new</span>商品ページを開く
+        </button>
+        <button class="btn-bulk" onclick="bulkOpenSupplier()">
+          <span class="material-symbols-outlined">store</span>仕入先を開く
+        </button>
+        <button class="btn-bulk" onclick="exportCsvDialog()">
+          <span class="material-symbols-outlined">upload_file</span>仕入れる（CSV出力）
+        </button>
+        <button class="btn-bulk-delete" onclick="deleteSelected()">
+          <span class="material-symbols-outlined">delete</span>削除
+        </button>
+      </div>
+
+      <div class="empty-state" id="emptyState">
+        <span class="material-symbols-outlined empty-icon">add_shopping_cart</span>
+        <h3>商品が登録されていません</h3>
+        <p>ヘッダーのASIN入力欄から商品を追加してください</p>
+      </div>
+
+      <div class="table-container" id="tableContainer" style="display:none;">
+        <table class="product-table">
+          <thead></thead>
+          <tbody id="productTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- 商品詳細モーダル -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">商品詳細</h2>
+        <button class="btn-icon" onclick="closeModal()"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- 設定モーダル -->
+  <div class="modal-overlay" id="settingsOverlay" onclick="closeSettings(event)">
+    <div class="modal modal-wide" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title"><span class="material-symbols-outlined" style="font-size:22px;vertical-align:middle;margin-right:8px;">settings</span>設定</h2>
+        <button class="btn-icon" onclick="closeSettings()"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="settings-tabs">
+        <button class="settings-tab active" onclick="switchSettingsTab('api',this)">Keepa API</button>
+        <button class="settings-tab" onclick="switchSettingsTab('shipping',this)">配送方法</button>
+        <button class="settings-tab" onclick="switchSettingsTab('commission',this)">カテゴリ手数料</button>
+        <button class="settings-tab" onclick="switchSettingsTab('csv',this)">CSV出力設定</button>
+        <button class="settings-tab" onclick="switchSettingsTab('columns',this)">列設定</button>
+        <button class="settings-tab" onclick="switchSettingsTab('data',this)">データ管理</button>
+        <button class="settings-tab" onclick="switchSettingsTab('history',this)">履歴</button>
+      </div>
+      <div class="modal-body" id="settingsBody"></div>
+    </div>
+  </div>
+
+  <!-- CSV出力モーダル -->
+  <div class="modal-overlay" id="csvOverlay" onclick="closeCsvModal(event)">
+    <div class="modal modal-wide" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title"><span class="material-symbols-outlined" style="font-size:22px;vertical-align:middle;margin-right:8px;">upload_file</span>CSV出力（仕入れる）</h2>
+        <button class="btn-icon" onclick="closeCsvModal()"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="modal-body" id="csvBody"></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Keepaからデータを取得中...</p>
+  </div>
+
+  <script>
+    // PWA Service Worker登録 + アップデート検知
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              // 新しいバージョンが利用可能
+              if (confirm('ツールが更新されました。今すぐ反映しますか？')) {
+                location.reload();
+              }
+            }
+          });
+        });
+      });
+    }
+  </script>
+  <script src="app.js?v=1"></script>
+</body>
+</html>
