@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sedori-lab-tools-v3';
+const CACHE_NAME = 'sedori-lab-tools-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -8,10 +8,6 @@ const ASSETS = [
   './research/index.html',
   './research/app.js',
   './research/style.css',
-  './orders/',
-  './orders/index.html',
-  './orders/app.js',
-  './orders/style.css',
   './manifest.json',
   './icon-192.svg',
   './icon-512.svg',
