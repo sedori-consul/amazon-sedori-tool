@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注文分析 - 差別化せどりラボ Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="../style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=4">
+  <meta name="theme-color" content="#1a73e8">
+  <link rel="icon" href="../icon-192.svg">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+</head>
+<body>
+  <header class="app-bar">
+    <div class="app-bar-content">
+      <div class="app-bar-left">
+        <div class="tool-switcher">
+          <a class="tool-tab" href="../">利益管理</a>
+          <a class="tool-tab" href="../research/">リサーチ</a>
+          <a class="tool-tab active" href="#">注文分析</a>
+        </div>
+      </div>
+      <div class="app-bar-center">
+        <div class="order-period" id="orderPeriod"></div>
+      </div>
+      <div class="app-bar-right">
+        <button class="btn-icon btn-toolbar" onclick="exportCsv()" title="CSV出力" id="btnExport" style="display:none;">
+          <span class="material-symbols-outlined">download</span>
+        </button>
+        <button class="btn-icon btn-toolbar" onclick="clearAllData()" title="全データクリア" id="btnClear" style="display:none;">
+          <span class="material-symbols-outlined">delete_sweep</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- アップロードエリア -->
+    <section class="upload-area" id="uploadArea">
+      <div class="flow-container">
+
+        <!-- STEP 1: 在庫データ -->
+        <div class="flow-step" id="stepInventory">
+          <div class="flow-step-header">
+            <span class="flow-step-num">1</span>
+            <span class="flow-step-title">在庫データを読み込む</span>
+            <span class="flow-step-badge" id="inventoryBadge"></span>
+          </div>
+          <div class="flow-step-body" id="inventoryBody">
+            <p class="flow-step-desc">SKUとASINの紐付けに必要です。Seller Centralの「出品レポート」をダウンロードしてください。</p>
+            <a class="btn-sc-open" href="https://sellercentral-japan.amazon.com/listing/reports" target="_blank" rel="noopener">
+              <span class="material-symbols-outlined">open_in_new</span>
+              Seller Central 出品レポートを開く
+            </a>
+            <div class="drop-zone" id="dropInventory">
+              <span class="material-symbols-outlined drop-icon">inventory_2</span>
+              <p class="drop-main-text">在庫データ（出品レポート）をここにドロップ</p>
+              <p class="drop-sub-text">TSV/TXTファイルをFinderからドラッグ</p>
+              <div class="drop-divider"><span>または</span></div>
+              <button class="btn-file-select" onclick="document.getElementById('fileInventory').click()">
+                <span class="material-symbols-outlined">folder_open</span>ファイルを選択
+              </button>
+            </div>
+            <input type="file" id="fileInventory" style="display:none">
+          </div>
+        </div>
+
+        <div class="flow-arrow"><span class="material-symbols-outlined">arrow_downward</span></div>
+
+        <!-- STEP 2: 注文レポート -->
+        <div class="flow-step" id="stepOrders">
+          <div class="flow-step-header">
+            <span class="flow-step-num">2</span>
+            <span class="flow-step-title">注文レポートを読み込む</span>
+            <span class="flow-step-badge" id="orderBadge"></span>
+          </div>
+          <div class="flow-step-body" id="orderBody">
+            <p class="flow-step-desc">出荷済み注文のレポートをダウンロードしてください（30日分推奨）。</p>
+            <a class="btn-sc-open" href="https://sellercentral-japan.amazon.com/order-reports-and-feeds/reports" target="_blank" rel="noopener">
+              <span class="material-symbols-outlined">open_in_new</span>
+              Seller Central 注文レポートを開く
+            </a>
+            <div class="drop-zone" id="dropOrders">
+              <span class="material-symbols-outlined drop-icon">receipt_long</span>
+              <p class="drop-main-text">注文レポートをここにドロップ</p>
+              <p class="drop-sub-text">TSV/TXTファイルをFinderからドラッグ</p>
+              <div class="drop-divider"><span>または</span></div>
+              <button class="btn-file-select" onclick="document.getElementById('fileOrders').click()">
+                <span class="material-symbols-outlined">folder_open</span>ファイルを選択
+              </button>
+            </div>
+            <input type="file" id="fileOrders" style="display:none">
+          </div>
+        </div>
+
+        <div class="flow-arrow"><span class="material-symbols-outlined">arrow_downward</span></div>
+
+        <!-- STEP 3: 説明 -->
+        <div class="flow-step flow-step-info">
+          <div class="flow-step-header">
+            <span class="flow-step-num">3</span>
+            <span class="flow-step-title">ASINごとに仕入れ値を入力 → 利益を確認</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- サマリーカード -->
+    <section class="summary-cards" id="summaryCards" style="display:none;">
+      <div class="summary-card">
+        <div class="summary-label">総注文数</div>
+        <div class="summary-value" id="totalOrders">0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">ASIN数</div>
+        <div class="summary-value" id="totalAsins">0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">総販売数</div>
+        <div class="summary-value" id="totalQuantity">0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">総売上</div>
+        <div class="summary-value" id="totalRevenue">0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">総仕入れ</div>
+        <div class="summary-value" id="totalCost">0</div>
+      </div>
+      <div class="summary-card card-profit">
+        <div class="summary-label">総粗利</div>
+        <div class="summary-value" id="totalProfit">-</div>
+      </div>
+    </section>
+
+    <!-- ステータスバー -->
+    <section class="status-bar" id="statusBar" style="display:none;">
+      <div class="status-bar-left">
+        <span class="material-symbols-outlined">edit_note</span>
+        <span id="statusText">仕入れ値が未入力のASIN: 0件</span>
+      </div>
+      <div class="status-bar-right">
+        <button class="btn-reupload" onclick="showUploadArea()">
+          <span class="material-symbols-outlined">upload_file</span>データ再読込
+        </button>
+      </div>
+    </section>
+
+    <!-- ASIN別テーブル -->
+    <section class="table-card" id="tableCard" style="display:none;">
+      <div class="table-toolbar">
+        <div class="search-box">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="searchInput" placeholder="ASIN / 商品名で検索" oninput="filterTable()">
+        </div>
+        <div class="sort-options">
+          <select id="sortSelect" onchange="sortTable()">
+            <option value="quantity-desc">販売数 多い順</option>
+            <option value="quantity-asc">販売数 少ない順</option>
+            <option value="revenue-desc">売上 高い順</option>
+            <option value="revenue-asc">売上 低い順</option>
+            <option value="profit-desc">粗利 高い順</option>
+            <option value="profit-asc">粗利 低い順</option>
+            <option value="name-asc">商品名 昇順</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th class="col-img">画像</th>
+              <th class="col-name">商品名 / ASIN</th>
+              <th class="col-qty">販売数</th>
+              <th class="col-avg-price">平均単価</th>
+              <th class="col-revenue">売上合計</th>
+              <th class="col-cost">仕入れ値 (1個)</th>
+              <th class="col-total-cost">仕入れ合計</th>
+              <th class="col-gross">粗利合計</th>
+              <th class="col-margin">利益率</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+          <tfoot id="tableFoot"></tfoot>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="app.js?v=4"></script>
+</body>
+</html>

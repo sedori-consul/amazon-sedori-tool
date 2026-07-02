@@ -1,7 +1,31 @@
+// === グローバルエラーハンドラー ===
+window.onerror = function(msg, url, line, col, err) {
+  console.error('エラー:', msg, url, line);
+  return true;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('非同期エラー:', e.reason);
+  e.preventDefault();
+});
+
 // === リサーチツール ===
 // Amazonセラーの商品一覧をKeepa APIで取得・管理するツール
 
 'use strict';
+
+// === 安全なlocalStorage操作 ===
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    console.error('保存エラー:', e);
+    if (typeof showToast === 'function') {
+      showToast('データの保存に失敗しました。ブラウザの空き容量が不足している可能性があります。', 'error');
+    }
+    return false;
+  }
+}
 
 // === 定数 ===
 const STORAGE_KEYS = {
@@ -102,7 +126,7 @@ function loadSellers() {
 }
 
 function saveSellers() {
-  localStorage.setItem(STORAGE_KEYS.sellers, JSON.stringify(sellers));
+  safeSetItem(STORAGE_KEYS.sellers, JSON.stringify(sellers));
 }
 
 function loadSettings() {
@@ -113,7 +137,7 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
+  safeSetItem(STORAGE_KEYS.settings, JSON.stringify(settings));
 }
 
 function loadActiveSeller() {
@@ -122,7 +146,7 @@ function loadActiveSeller() {
 
 function saveActiveSeller(id) {
   if (id) {
-    localStorage.setItem(STORAGE_KEYS.activeSeller, id);
+    safeSetItem(STORAGE_KEYS.activeSeller, id);
   } else {
     localStorage.removeItem(STORAGE_KEYS.activeSeller);
   }
@@ -219,25 +243,37 @@ async function fetchSellerFromKeepa(sellerId) {
   }
 
   const url = 'https://api.keepa.com/seller?key=' + apiKey + '&domain=5&seller=' + sellerId;
-  const res = await fetch(url);
-  const data = await res.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    const data = await res.json();
 
-  if (data.error) {
-    showToast('Keepaからデータを取得できませんでした。しばらく待ってから再試行してください', 'error');
-    return null;
+    if (data.error) {
+      showToast('Keepaからデータを取得できませんでした。しばらく待ってから再試行してください', 'error');
+      return null;
+    }
+
+    // セラーデータは sellers オブジェクトのキーとして返される
+    const sellerData = data.sellers && data.sellers[sellerId];
+    if (!sellerData) {
+      showToast('セラーが見つかりませんでした: ' + sellerId, 'error');
+      return null;
+    }
+
+    const sellerName = sellerData.sellerName || sellerId;
+    const asinList = sellerData.asinList || [];
+
+    return { sellerName, asinList, tokensLeft: data.tokensLeft };
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      showToast('通信がタイムアウトしました。インターネット接続を確認してください。', 'error');
+      return null;
+    }
+    throw err;
   }
-
-  // セラーデータは sellers オブジェクトのキーとして返される
-  const sellerData = data.sellers && data.sellers[sellerId];
-  if (!sellerData) {
-    showToast('セラーが見つかりませんでした: ' + sellerId, 'error');
-    return null;
-  }
-
-  const sellerName = sellerData.sellerName || sellerId;
-  const asinList = sellerData.asinList || [];
-
-  return { sellerName, asinList, tokensLeft: data.tokensLeft };
 }
 
 // 商品詳細をバッチ取得（100件ずつ）
@@ -250,8 +286,11 @@ async function fetchProductsBatch(asinList, onProgress) {
     const batch = asinList.slice(i, i + 100);
     const url = 'https://api.keepa.com/product?key=' + apiKey + '&domain=5&asin=' + batch.join(',') + '&stats=90';
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
       const data = await res.json();
 
       if (data.error) {
@@ -275,6 +314,11 @@ async function fetchProductsBatch(asinList, onProgress) {
         await new Promise(r => setTimeout(r, 2000));
       }
     } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        showToast('通信がタイムアウトしました。インターネット接続を確認してください。', 'error');
+        break;
+      }
       showToast('インターネット接続を確認してください。接続できている場合はしばらく待ってから再試行してください', 'error');
       break;
     }
@@ -561,9 +605,12 @@ async function searchByCriteria() {
 
   showLoading(true, '条件検索中...');
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   try {
     const url = 'https://api.keepa.com/query?key=' + encodeURIComponent(apiKey) + '&domain=5&selection=' + encodeURIComponent(JSON.stringify(selection));
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     const data = await res.json();
 
     if (data.error) {
@@ -611,7 +658,12 @@ async function searchByCriteria() {
 
     showToast(products.length + '件の商品が見つかりました');
   } catch (err) {
+    clearTimeout(timeoutId);
     hideLoading();
+    if (err.name === 'AbortError') {
+      showToast('通信がタイムアウトしました。インターネット接続を確認してください。', 'error');
+      return;
+    }
     showToast('検索に失敗しました。条件を変えて再試行してください', 'error');
   }
 }
@@ -622,7 +674,7 @@ function loadPresets() {
   try { presets = JSON.parse(localStorage.getItem(STORAGE_KEYS.presets)) || []; }
   catch { presets = []; }
 }
-function savePresets() { localStorage.setItem(STORAGE_KEYS.presets, JSON.stringify(presets)); }
+function savePresets() { safeSetItem(STORAGE_KEYS.presets, JSON.stringify(presets)); }
 
 // 現在の条件をプリセットとして保存
 function saveCurrentCriteria() {
@@ -837,6 +889,8 @@ async function updateMonitor(monitorId) {
 
   showLoading(true, '「' + monitor.name + '」を検索中...');
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   try {
     // Keepa Product Finder APIで検索
     const selection = buildSelectionFromCriteria(monitor.criteria);
@@ -845,7 +899,8 @@ async function updateMonitor(monitorId) {
 
     const url = 'https://api.keepa.com/query?key=' + encodeURIComponent(apiKey) +
                 '&domain=5&selection=' + encodeURIComponent(JSON.stringify(selection));
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     const data = await res.json();
 
     if (data.error) {
@@ -930,7 +985,12 @@ async function updateMonitor(monitorId) {
     }
 
   } catch(err) {
+    clearTimeout(timeoutId);
     hideLoading();
+    if (err.name === 'AbortError') {
+      showToast('通信がタイムアウトしました。インターネット接続を確認してください。', 'error');
+      return;
+    }
     showToast('データの更新に失敗しました。時間をおいて再試行してください', 'error');
   }
 }
@@ -1008,7 +1068,7 @@ function loadMonitors() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.monitors)) || []; }
   catch { return []; }
 }
-function saveMonitors() { localStorage.setItem(STORAGE_KEYS.monitors, JSON.stringify(monitors)); }
+function saveMonitors() { safeSetItem(STORAGE_KEYS.monitors, JSON.stringify(monitors)); }
 
 // === 描画 ===
 
@@ -1352,6 +1412,7 @@ function handleCsvFile(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
+  reader.onerror = () => { showToast('ファイルの読み込みに失敗しました', 'error'); };
   reader.onload = (e) => {
     try {
       const csv = e.target.result;

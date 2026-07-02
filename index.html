@@ -21,6 +21,7 @@
         <div class="tool-switcher">
           <a class="tool-tab active" href="#">利益管理</a>
           <a class="tool-tab" href="./research/">リサーチ</a>
+          <a class="tool-tab" href="./orders/">注文分析</a>
         </div>
       </div>
       <div class="app-bar-center">
@@ -157,6 +158,8 @@
             }
           });
         });
+      }).catch(err => {
+        console.error('Service Worker登録失敗:', err);
       });
     }
   </script>

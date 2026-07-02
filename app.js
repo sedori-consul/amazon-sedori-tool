@@ -1,3 +1,27 @@
+// === グローバルエラーハンドラー ===
+window.onerror = function(msg, url, line, col, err) {
+  console.error('エラー:', msg, url, line);
+  return true;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('非同期エラー:', e.reason);
+  e.preventDefault();
+});
+
+// === 安全なlocalStorage操作 ===
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    console.error('保存エラー:', e);
+    if (typeof showToast === 'function') {
+      showToast('データの保存に失敗しました。ブラウザの空き容量が不足している可能性があります。', 'error');
+    }
+    return false;
+  }
+}
+
 // === 状態管理 ===
 let products = [];
 let sortKey = 'lastUpdated';
@@ -82,7 +106,7 @@ const DEFAULT_SETTINGS = {
 };
 
 function saveProductsToStorage() {
-  localStorage.setItem(STORAGE_KEYS.products, JSON.stringify(products));
+  safeSetItem(STORAGE_KEYS.products, JSON.stringify(products));
   // 日付スナップショットを自動作成（1日1回）
   saveDailySnapshot();
   // 自動保存インジケーター表示
@@ -104,7 +128,7 @@ function saveDailySnapshot() {
   const key = SNAPSHOT_PREFIX + today;
   // 本日分が未作成の場合のみ保存
   if (!localStorage.getItem(key)) {
-    localStorage.setItem(key, JSON.stringify({ products, settings: appSettings, date: today }));
+    safeSetItem(key, JSON.stringify({ products, settings: appSettings, date: today }));
     cleanOldSnapshots();
   }
 }
@@ -157,7 +181,7 @@ function deleteSnapshot(key) {
   openHistory();
 }
 function loadProductsFromStorage() { try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.products)) || []; } catch { return []; } }
-function saveSettingsToStorage() { localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(appSettings)); }
+function saveSettingsToStorage() { safeSetItem(STORAGE_KEYS.settings, JSON.stringify(appSettings)); }
 function loadSettingsFromStorage() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings));
@@ -172,13 +196,22 @@ async function fetchFromKeepa(asin) {
   const apiKey = appSettings.keepaApiKey;
   if (!apiKey) return { error: 'Keepa APIキーが設定されていません。設定から入力してください。' };
   const url = `https://api.keepa.com/product?key=${encodeURIComponent(apiKey)}&domain=5&asin=${asin}&stats=90&offers=20`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     const data = await res.json();
     if (data.error) return { error: 'Keepaからデータを取得できませんでした。APIキーが正しいか確認し、しばらく待ってから再試行してください。' };
     if (!data.products?.length) return { error: '商品が見つかりませんでした。' };
     return parseKeepaProduct(data.products[0]);
-  } catch (err) { return { error: 'Keepaとの通信に失敗しました。インターネット接続を確認し、しばらく待ってから再試行してください。' }; }
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      return { error: '通信がタイムアウトしました。インターネット接続を確認してください。' };
+    }
+    return { error: 'Keepaとの通信に失敗しました。インターネット接続を確認し、しばらく待ってから再試行してください。' };
+  }
 }
 
 function parseKeepaProduct(product) {
@@ -777,7 +810,7 @@ function bulkOpenSupplier() {
 }
 
 // === ASINコピー ===
-function copyAsin(asin,el) { navigator.clipboard.writeText(asin).then(()=>{ el.classList.add('copied'); el.textContent='Copied!'; setTimeout(()=>{el.classList.remove('copied');el.textContent=asin;},1000); }); }
+function copyAsin(asin,el) { navigator.clipboard.writeText(asin).then(()=>{ el.classList.add('copied'); el.textContent='Copied!'; setTimeout(()=>{el.classList.remove('copied');el.textContent=asin;},1000); }).catch(()=>{ showToast('コピーに失敗しました', 'error'); }); }
 
 // === フィルター・ソート ===
 function toggleFilterRow() { const r=document.getElementById('filterRow'); const btn=document.querySelector('.btn-toggle-filter'); if(r.style.display==='none'){r.style.display='';btn.classList.add('active')}else{r.style.display='none';btn.classList.remove('active');document.querySelectorAll('.col-filter').forEach(i=>i.value='');colFilters={};renderTable();} }
@@ -1311,6 +1344,7 @@ function exportAllData() {
 function importAllData(input) {
   const file = input.files[0]; if (!file) return;
   const reader = new FileReader();
+  reader.onerror = () => { showToast('ファイルの読み込みに失敗しました', 'error'); };
   reader.onload = (e) => {
     try {
       const data = JSON.parse(e.target.result);
